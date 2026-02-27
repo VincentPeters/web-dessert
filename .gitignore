@@ -1,2 +1,6 @@
 node_modules/
 dist/
+.omc
+.playwright-mcp
+docs
+.claude

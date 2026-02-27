@@ -1,7 +1,0 @@
-{
-  "tool_name": "mcp__playwright__browser_take_screenshot",
-  "tool_input_preview": "{\"type\":\"png\",\"filename\":\"pyramid-ref.png\"}",
-  "error": "### Error\nTimeoutError: page._snapshotForAI: Timeout 5000ms exceeded.",
-  "timestamp": "2026-02-27T13:56:30.404Z",
-  "retry_count": 1
-}
