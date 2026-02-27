@@ -1,0 +1,94 @@
+const fs = require('fs');
+const path = require('path');
+const { marked } = require('marked');
+
+const POSTS_DIR = path.join(__dirname, 'posts');
+const DIST_DIR = path.join(__dirname, 'dist');
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
+const CSS_PATH = path.join(__dirname, 'src', 'css', 'style.css');
+
+function parseFrontmatter(content) {
+  const parts = content.split('---');
+  if (parts.length < 3) return { data: {}, body: content };
+  const frontmatter = parts[1].trim();
+  const body = parts.slice(2).join('---').trim();
+  const data = {};
+  for (const line of frontmatter.split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    data[key] = value;
+  }
+  return { data, body };
+}
+
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function loadPosts() {
+  const files = fs.readdirSync(POSTS_DIR).filter(f => f.endsWith('.md'));
+  return files.map(file => {
+    const content = fs.readFileSync(path.join(POSTS_DIR, file), 'utf-8');
+    const { data, body } = parseFrontmatter(content);
+    return {
+      title: data.title || 'Untitled',
+      date: data.date || '',
+      slug: data.slug || file.replace('.md', ''),
+      description: data.description || '',
+      body,
+    };
+  }).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function buildPost(post, template, css) {
+  const html = marked(post.body);
+  const content = `<div class="post-header"><h1>${post.title}</h1><time datetime="${post.date}">${formatDate(post.date)}</time></div>${html}`;
+  return template
+    .replace('{{title}}', post.title)
+    .replace('{{description}}', post.description)
+    .replace('{{content}}', content)
+    .replace('{{css}}', css);
+}
+
+function buildIndex(posts, template, css) {
+  const items = posts.map(post => `
+  <li>
+    <h2><a href="/${post.slug}/">${post.title}</a></h2>
+    <time datetime="${post.date}">${formatDate(post.date)}</time>
+    <p>${post.description}</p>
+  </li>`).join('\n');
+
+  const content = `<h1>Web Dessert</h1><ul class="post-list">${items}</ul>`;
+  return template
+    .replace('{{title}}', 'Web Dessert')
+    .replace('{{description}}', 'A personal blog')
+    .replace('{{content}}', content)
+    .replace('{{css}}', css);
+}
+
+function build() {
+  if (!fs.existsSync(DIST_DIR)) fs.mkdirSync(DIST_DIR, { recursive: true });
+
+  const template = fs.readFileSync(path.join(TEMPLATES_DIR, 'base.html'), 'utf-8');
+  const css = fs.readFileSync(CSS_PATH, 'utf-8');
+  const posts = loadPosts();
+
+  for (const post of posts) {
+    const postDir = path.join(DIST_DIR, post.slug);
+    if (!fs.existsSync(postDir)) fs.mkdirSync(postDir, { recursive: true });
+    const html = buildPost(post, template, css);
+    fs.writeFileSync(path.join(postDir, 'index.html'), html);
+    console.log(`Built: dist/${post.slug}/index.html`);
+  }
+
+  const indexHtml = buildIndex(posts, template, css);
+  fs.writeFileSync(path.join(DIST_DIR, 'index.html'), indexHtml);
+  console.log('Built: dist/index.html');
+  console.log(`Done. ${posts.length} post(s) built.`);
+}
+
+build();

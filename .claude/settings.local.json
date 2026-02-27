@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:512kb.club)",
+      "WebFetch(domain:ooh.directory)",
+      "WebFetch(domain:neocities.org)",
+      "WebFetch(domain:medium.com)",
+      "WebSearch",
+      "mcp__plugin_oh-my-claudecode_t__state_list_active",
+      "mcp__plugin_oh-my-claudecode_t__state_read",
+      "mcp__plugin_oh-my-claudecode_t__state_clear",
+      "mcp__plugin_oh-my-claudecode_t__state_write",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:aesthetics.fandom.com)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_snapshot"
+    ]
+  }
+}
