@@ -6,6 +6,7 @@ const POSTS_DIR = path.join(__dirname, 'posts');
 const DIST_DIR = path.join(__dirname, 'dist');
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
 const CSS_PATH = path.join(__dirname, 'src', 'css', 'style.css');
+const JS_DIR = path.join(__dirname, 'src', 'js');
 
 function parseFrontmatter(content) {
   const parts = content.split('---');
@@ -39,10 +40,32 @@ function loadPosts() {
       date: data.date || '',
       slug: data.slug || file.replace('.md', ''),
       description: data.description || '',
+      draft: data.draft === 'true',
       body,
     };
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  })
+  .filter(post => !post.draft || process.env.INCLUDE_DRAFTS)
+  .sort((a, b) => b.date.localeCompare(a.date));
 }
+
+const terminalColors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'dim', 'bold'];
+
+const renderer = new marked.Renderer();
+renderer.code = function ({ text, lang }) {
+  if (lang !== 'terminal') {
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const cls = lang ? ` class="language-${lang}"` : '';
+    return `<pre><code${cls}>${escaped}</code></pre>\n`;
+  }
+  let out = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  for (const c of terminalColors) {
+    out = out.replace(new RegExp(`\\{${c}\\}(.*?)\\{/\\}`, 'gs'), `<span class="t-${c}">$1</span>`);
+  }
+  out = out.replace(/^(\$ )/gm, '<span class="t-prompt">$ </span>');
+  return `<pre class="terminal"><code>${out}</code></pre>\n`;
+};
+
+marked.use({ renderer });
 
 function buildPost(post, template, css) {
   const html = marked(post.body);
@@ -57,7 +80,7 @@ function buildPost(post, template, css) {
 function buildIndex(posts, template, css) {
   const items = posts.map(post => `
   <li>
-    <h2><a href="/${post.slug}/">${post.title}</a></h2>
+    <h2><a href="/${post.slug}/">${post.draft ? '[DRAFT] ' : ''}${post.title}</a></h2>
     <time datetime="${post.date}">${formatDate(post.date)}</time>
     <p>${post.description}</p>
   </li>`).join('\n');
@@ -88,6 +111,15 @@ function build() {
   const indexHtml = buildIndex(posts, template, css);
   fs.writeFileSync(path.join(DIST_DIR, 'index.html'), indexHtml);
   console.log('Built: dist/index.html');
+
+  // Copy JS files
+  const distJs = path.join(DIST_DIR, 'js');
+  if (!fs.existsSync(distJs)) fs.mkdirSync(distJs, { recursive: true });
+  for (const file of fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js'))) {
+    fs.copyFileSync(path.join(JS_DIR, file), path.join(distJs, file));
+    console.log(`Copied: dist/js/${file}`);
+  }
+
   console.log(`Done. ${posts.length} post(s) built.`);
 }
 

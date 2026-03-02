@@ -4,6 +4,8 @@ const path = require('path');
 
 const WATCH_DIRS = ['posts', 'templates', 'src'];
 
+process.env.INCLUDE_DRAFTS = 'true';
+
 function build() {
   try {
     execSync('node build.js', { stdio: 'inherit' });
